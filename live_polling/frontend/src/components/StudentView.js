@@ -54,9 +54,15 @@ export default function StudentView() {
       localStorage.removeItem('studentName');
     };
 
+    const handleVoteRejected = ({ message }) => {
+      alert(message || "You have already voted for this question from another window/tab");
+      setHasSubmitted(true);
+    };
+
     socket.on("poll:update", handleUpdate);
     socket.on("poll:closed", handleClosed);
     socket.on("student:kicked", handleKicked);
+    socket.on("vote:rejected", handleVoteRejected);
 
     // Request latest state in case we missed the initial event
     socket.emit("poll:getState");
@@ -65,6 +71,7 @@ export default function StudentView() {
       socket.off("poll:update", handleUpdate);
       socket.off("poll:closed", handleClosed);
       socket.off("student:kicked", handleKicked);
+      socket.off("vote:rejected", handleVoteRejected);
     };
   }, []);
 

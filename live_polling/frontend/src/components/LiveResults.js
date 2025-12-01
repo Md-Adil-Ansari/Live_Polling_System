@@ -6,7 +6,16 @@ import ChatWidget from "./ChatWidget";
 
 export default function LiveResults() {
     const [poll, setPoll] = useState(null);
+    const [currentTime, setCurrentTime] = useState(Date.now());
     const navigate = useNavigate();
+
+    // Update current time every second to make button state reactive
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentTime(Date.now());
+        }, 1000);
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         // Request current state immediately
@@ -74,9 +83,12 @@ export default function LiveResults() {
             <div className="mt-10 flex justify-end">
                 <button
                     onClick={() => navigate("/teacher")}
-                    className="px-8 py-3 rounded-full bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transform hover:-translate-y-0.5 active:translate-y-0"
+                    disabled={poll && poll.isActive && poll.expiresAt > currentTime}
+                    className="px-8 py-3 rounded-full bg-indigo-600 text-white font-semibold hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transform hover:-translate-y-0.5 active:translate-y-0"
                 >
-                    + Ask a new question
+                    {poll && poll.isActive && poll.expiresAt > currentTime
+                        ? "⏳ Waiting for timer..."
+                        : "+ Ask a new question"}
                 </button>
             </div>
 
