@@ -8,8 +8,23 @@ export default function ChatWidget({ name, role }) {
   const [participants, setParticipants] = useState([]);
   const [input, setInput] = useState("");
   const listRef = useRef(null);
+  const chatWidgetRef = useRef(null);
 
   const currentName = name || (role === "teacher" ? "Teacher" : "Guest");
+
+  // Click outside to close
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (chatWidgetRef.current && !chatWidgetRef.current.contains(event.target) && isOpen) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     const handleHistory = ({ messages }) => setMessages(messages || []);
@@ -58,14 +73,14 @@ export default function ChatWidget({ name, role }) {
   const isTeacher = role === "teacher";
 
   return (
-    <>
+    <div ref={chatWidgetRef}>
       <button
         type="button"
-        className="chat-fab"
+        className="fixed right-8 bottom-8 w-14 h-14 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-2xl hover:bg-indigo-700 transition-all z-50 hover:scale-110 active:scale-95"
         onClick={() => setIsOpen((o) => !o)}
       >
-        <svg width="39" height="39" viewBox="0 0 39 39" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M30.625 0H7.875C6.58207 0 
+        <svg width="24" height="24" viewBox="0 0 39 39" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6">
+          <path d="M30.625 0H7.875C6.58207 0 
             5.34209 0.513615 4.42785 1.42785C3.51361 
             2.34209 3 3.58207 3 4.875V21.125C3 22.4179 3.51361 
             23.6579 4.42785 24.5721C5.34209 25.4864 6.58207 26 
@@ -83,103 +98,105 @@ export default function ChatWidget({ name, role }) {
             4.44402 6.42121 4.0307 6.72595 3.72595C7.0307 3.42121 
             7.44402 3.25 7.875 3.25H30.625C31.056 3.25 31.4693 
             3.42121 31.774 3.72595C32.0788 4.0307 32.25 4.44402 
-            32.25 4.875V26.9588Z" fill="white"/>
+            32.25 4.875V26.9588Z" fill="white" />
         </svg>
       </button>
 
       {isOpen && (
-        <div className="chat-panel">
-          <div className="chat-tabs">
+        <div className="fixed right-8 bottom-24 w-80 sm:w-96 h-[500px] max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden z-50 animate-in slide-in-from-bottom-4 duration-200">
+          <div className="flex border-b border-gray-100">
             <button
               type="button"
-              className={
-                "chat-tab-btn" +
-                (activeTab === "chat" ? " chat-tab-btn--active" : "")
-              }
+              className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === "chat"
+                ? "text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/30"
+                : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                }`}
               onClick={() => setActiveTab("chat")}
             >
               Chat
             </button>
-            {isTeacher && (
-              <button
-                type="button"
-                className={
-                  "chat-tab-btn" +
-                  (activeTab === "participants"
-                    ? " chat-tab-btn--active"
-                    : "")
-                }
-                onClick={() => setActiveTab("participants")}
-              >
-                Participants
-              </button>
-            )}
+            <button
+              type="button"
+              className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === "participants"
+                ? "text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/30"
+                : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                }`}
+              onClick={() => setActiveTab("participants")}
+            >
+              Participants
+            </button>
           </div>
 
-          {activeTab === "chat" || !isTeacher ? (
+          {activeTab === "chat" ? (
             <>
-              <div className="chat-messages" ref={listRef}>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50" ref={listRef}>
                 {messages.length === 0 && (
-                  <div className="chat-empty">No messages yet. Say hi 👋</div>
+                  <div className="text-center text-xs text-gray-400 mt-4">No messages yet. Say hi 👋</div>
                 )}
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
-                    className={
-                      "chat-message-row" +
-                      (isOwn(msg) ? " chat-message-row--own" : "")
-                    }
+                    className={`flex flex-col max-w-[85%] ${isOwn(msg) ? "items-end ml-auto" : "items-start"}`}
                   >
-                    <div className="chat-message-sender">
+                    <div className={`text-[10px] mb-1 px-1 ${isOwn(msg) ? "text-gray-500" : "text-indigo-600 font-medium"}`}>
                       {msg.sender}
                     </div>
-                    <div className="chat-message-bubble">
+                    <div className={`px-3 py-2 rounded-2xl text-sm shadow-sm ${isOwn(msg)
+                      ? "bg-indigo-600 text-white rounded-tr-none"
+                      : "bg-white text-gray-900 border border-gray-100 rounded-tl-none"
+                      }`}>
                       {msg.text}
                     </div>
                   </div>
                 ))}
               </div>
-              <form className="chat-input-row" onSubmit={sendMessage}>
+              <form className="p-3 border-t border-gray-100 flex gap-2 bg-white" onSubmit={sendMessage}>
                 <input
-                  className="chat-input"
+                  className="flex-1 bg-gray-100 border-0 rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Type a message"
+                  placeholder="Type a message..."
                 />
-                <button type="submit" className="chat-send-btn">
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-full bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                  disabled={!input.trim()}
+                >
                   Send
                 </button>
               </form>
             </>
           ) : (
-            <div className="chat-participants">
+            <div className="flex-1 overflow-y-auto p-0">
               {participants.length === 0 && (
-                <div className="chat-empty">No participants yet.</div>
+                <div className="text-center text-xs text-gray-400 mt-4">No participants yet.</div>
               )}
 
               {participants.length > 0 && (
-                <div className="chat-participants-header">
+                <div className={`grid ${isTeacher ? "grid-cols-[1fr_auto]" : "grid-cols-1"} gap-4 px-4 py-2 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wider`}>
                   <span>Name</span>
-                  <span>Action</span>
+                  {isTeacher && <span>Action</span>}
                 </div>
               )}
 
               {participants.map((p) => (
-                <div key={p.id} className="chat-participant-row">
-                  <span>{p.name}</span>
-                  <button
-                    type="button"
-                    className="kick-btn"
-                    onClick={() => kickStudent(p.id)}
-                  >
-                    Kick out
-                  </button>
+                <div key={p.id} className={`grid ${isTeacher ? "grid-cols-[1fr_auto]" : "grid-cols-1"} gap-4 px-4 py-3 border-b border-gray-50 items-center hover:bg-gray-50 transition-colors`}>
+                  <span className="text-sm font-medium text-gray-900">{p.name}</span>
+                  {isTeacher && (
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-full transition-colors border border-red-100"
+                      onClick={() => kickStudent(p.id)}
+                    >
+                      Kick out
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
           )}
         </div>
       )}
-    </>
+    </div>
   );
 }

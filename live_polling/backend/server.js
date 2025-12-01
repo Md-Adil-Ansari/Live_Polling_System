@@ -2,6 +2,11 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const mongoose = require("mongoose");
+require("dotenv").config();
+
+const Poll = require("./models/Poll");
+const ChatMessage = require("./models/ChatMessage");
 
 const app = express();
 app.use(cors());
@@ -15,12 +20,78 @@ const io = new Server(server, {
   },
 });
 
+// ------- MONGODB CONNECTION -------
+mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/live_polling")
+  .then(async () => {
+    console.log("✅ Connected to MongoDB");
+
+    // Restore active poll if exists
+    await restoreActivePoll();
+  })
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
+
 // ------- STATE -------
 let students = {};        // socketId -> { name, hasAnswered }
 let currentPoll = null;   // { id, question, options, expiresAt, isActive }
 let answers = {};         // socketId -> optionIndex
 let pollTimer = null;
-let chatMessages = [];    // { id, sender, role, text, ts }
+
+let questionCount = 0;      // increment on each new poll
+// pollHistory and chatMessages now stored in MongoDB
+
+// ------- RESTORE ACTIVE POLL -------
+async function restoreActivePoll() {
+  try {
+    // Find the most recent poll marked as active
+    const activePoll = await Poll.findOne({ isActive: true }).sort({ createdAt: -1 });
+
+    if (!activePoll) {
+      console.log("📭 No active poll to restore");
+      return;
+    }
+
+    const now = Date.now();
+    const timeRemaining = activePoll.expiresAt - now;
+
+    // If poll has expired, mark it as inactive
+    if (timeRemaining <= 0) {
+      activePoll.isActive = false;
+      await activePoll.save();
+      console.log("⏰ Restored poll had expired, marked as inactive");
+      return;
+    }
+
+    // Restore poll to memory
+    currentPoll = {
+      id: activePoll.id || activePoll._id.toString(),
+      dbId: activePoll._id, // Store MongoDB ID
+      number: activePoll.number,
+      question: activePoll.question,
+      options: activePoll.options,
+      expiresAt: activePoll.expiresAt,
+      isActive: true,
+    };
+
+    questionCount = activePoll.number;
+
+    // Restore timer for remaining time
+    pollTimer = setTimeout(async () => {
+      if (!currentPoll) return;
+      currentPoll.isActive = false;
+
+      // Update in MongoDB
+      await Poll.findByIdAndUpdate(activePoll._id, { isActive: false });
+
+      console.log("Poll closed by timer (restored)");
+      broadcastState();
+      io.emit("poll:closed");
+    }, timeRemaining);
+
+    console.log(`✅ Restored active poll: "${currentPoll.question}" (${Math.round(timeRemaining / 1000)}s remaining)`);
+  } catch (err) {
+    console.error("❌ Error restoring active poll:", err);
+  }
+}
 
 // helper to send students with ids
 function serializeStudents() {
@@ -63,7 +134,7 @@ function broadcastState() {
 }
 
 // ------- SOCKET.IO -------
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
   console.log("Client connected", socket.id);
 
   // send current poll state
@@ -73,8 +144,17 @@ io.on("connection", (socket) => {
     });
   }
 
-  // send chat + participants
-  socket.emit("chat:history", { messages: chatMessages });
+  // allow client to request state (fix for late joiners)
+  socket.on("poll:getState", () => {
+    const p = currentPoll
+      ? { ...currentPoll, results: getResults() }
+      : null;
+    socket.emit("poll:update", { poll: p });
+  });
+
+  // send chat history from MongoDB + participants
+  const messages = await ChatMessage.find({}).sort({ timestamp: 1 }).limit(100).lean();
+  socket.emit("chat:history", { messages });
   socket.emit("students:update", { students: serializeStudents() });
 
   // student registers
@@ -84,14 +164,36 @@ io.on("connection", (socket) => {
   });
 
   // teacher creates poll
-  socket.on("teacher:createPoll", ({ question, options, duration }) => {
-    if (currentPoll && currentPoll.isActive) return;
+  socket.on("teacher:createPoll", async ({ question, options, duration }) => {
+    // Archive current poll if exists
+    if (currentPoll) {
+      // Find and update the existing active poll in MongoDB
+      await Poll.updateOne(
+        { _id: currentPoll.dbId },
+        { $set: { results: getResults(), isActive: false } }
+      );
+      console.log("📦 Archived poll to MongoDB");
+    }
 
+    questionCount++; // increment question number
     const id = Date.now().toString();
     const expiresAt = Date.now() + duration * 1000;
 
+    // Save new poll to MongoDB immediately as active
+    const newPoll = new Poll({
+      number: questionCount,
+      question,
+      options,
+      results: [],
+      expiresAt,
+      isActive: true,
+    });
+    await newPoll.save();
+
     currentPoll = {
       id,
+      dbId: newPoll._id, // Store MongoDB ID for updates
+      number: questionCount,
       question,
       options,
       expiresAt,
@@ -107,18 +209,33 @@ io.on("connection", (socket) => {
     broadcastState();
 
     if (pollTimer) clearTimeout(pollTimer);
-    pollTimer = setTimeout(() => {
+    pollTimer = setTimeout(async () => {
       if (!currentPoll) return;
       currentPoll.isActive = false;
       currentPoll.expiresAt = Date.now();
+
+      // Update in MongoDB
+      await Poll.updateOne(
+        { _id: currentPoll.dbId },
+        { $set: { isActive: false } }
+      );
+
       console.log("Poll closed by timer");
       broadcastState();
       io.emit("poll:closed");
     }, duration * 1000);
   });
 
+  // teacher requests history
+  socket.on("teacher:getHistory", async () => {
+    // Fetch ONLY archived (inactive) polls from MongoDB
+    const fullHistory = await Poll.find({ isActive: false }).sort({ createdAt: 1 }).lean();
+
+    socket.emit("teacher:history", { history: fullHistory });
+  });
+
   // student answers
-  socket.on("student:answer", ({ optionIndex }) => {
+  socket.on("student:answer", async ({ optionIndex }) => {
     if (!currentPoll || !currentPoll.isActive) return;
     if (!students[socket.id]) return;
 
@@ -128,14 +245,8 @@ io.on("connection", (socket) => {
 
     broadcastState();
 
-    if (allStudentsAnswered()) {
-      if (pollTimer) clearTimeout(pollTimer);
-      currentPoll.isActive = false;
-      currentPoll.expiresAt = Date.now();
-      console.log("Poll closed: all students answered");
-      broadcastState();
-      io.emit("poll:closed");
-    }
+    // Don't auto-close poll - let timer run its course
+    // Votes are preserved, but poll stays active until timer expires
   });
 
   // teacher clears poll
@@ -168,33 +279,33 @@ io.on("connection", (socket) => {
   });
 
   // ------- CHAT -------
-  socket.on("chat:getHistory", () => {
-    socket.emit("chat:history", { messages: chatMessages });
+  socket.on("chat:getHistory", async () => {
+    const messages = await ChatMessage.find({}).sort({ timestamp: 1 }).limit(100).lean();
+    socket.emit("chat:history", { messages });
   });
 
-  socket.on("chat:message", (msg) => {
+  socket.on("chat:message", async (msg) => {
     if (!msg || !msg.text) return;
-    const fullMsg = {
-      id: Date.now().toString() + Math.random().toString(16).slice(2),
+
+    const chatMessage = new ChatMessage({
       sender: msg.sender || "Guest",
       role: msg.role || "student",
       text: msg.text,
-      ts: Date.now(),
-    };
+      timestamp: Date.now(),
+    });
 
-    chatMessages.push(fullMsg);
-    if (chatMessages.length > 100) chatMessages.shift();
+    await chatMessage.save();
 
-    io.emit("chat:message", fullMsg);
+    // Broadcast to all clients
+    io.emit("chat:message", chatMessage.toObject());
   });
 
   socket.on("disconnect", () => {
+    // Remove student from active list but KEEP their answer for accurate results
     delete students[socket.id];
-    delete answers[socket.id];
+    // DON'T delete answers[socket.id] - preserve votes even after disconnect
 
-    if (Object.keys(students).length === 0 && currentPoll && currentPoll.isActive) {
-      currentPoll.isActive = false;
-    }
+    // Don't auto-close poll when all students leave - let timer run its course
 
     broadcastState();
     io.emit("students:update", { students: serializeStudents() });
