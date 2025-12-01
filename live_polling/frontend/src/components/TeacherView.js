@@ -15,11 +15,23 @@ export default function TeacherView() {
     { text: "", isCorrect: false }
   ]);
   const [poll, setPoll] = useState(null);
+  const [currentTime, setCurrentTime] = useState(Date.now()); // Track current time for reactive button state
   const maxChars = 100;
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
+  // Update current time every second to make canAskNew reactive
   useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    // Request current poll state when component mounts
+    socket.emit("poll:getState");
+
     const handleUpdate = ({ poll }) => setPoll(poll);
     const handleClosed = () =>
       setPoll(prev => (prev ? { ...prev, isActive: false } : null));
@@ -60,7 +72,8 @@ export default function TeacherView() {
     setOptions(prev => [...prev, { text: "", isCorrect: false }]);
   };
 
-  const canAskNew = !poll || (poll && !poll.isActive);
+  // Check if teacher can ask a new question - must wait for timer to expire
+  const canAskNew = !poll || !poll.isActive || (poll.expiresAt && poll.expiresAt <= currentTime);
 
   const handleAskQuestion = (e) => {
     e.preventDefault();
