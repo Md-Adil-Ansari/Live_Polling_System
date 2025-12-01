@@ -22,11 +22,11 @@ export default function TimerBar({ expiresAt, label = "Question 1" }) {
   const isDanger = remaining <= 10; // last 10s red
 
   return (
-    <div className="timer-row">
-      <span className="timer-label">{label}</span>
-      <div className="timer-countdown">
-        <span className="timer-icon">⏱</span>
-        <span className={`timer-text ${isDanger ? "timer-text--danger" : ""}`}>
+    <div className="flex items-center justify-between mb-6 bg-gray-50 rounded-xl p-4 border border-gray-100">
+      <span className="font-bold text-gray-700">{label}</span>
+      <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg shadow-sm border border-gray-100">
+        <span className="text-lg">⏱</span>
+        <span className={`font-mono font-bold text-lg ${isDanger ? "text-red-600" : "text-gray-900"}`}>
           {minutes}:{seconds}
         </span>
       </div>
