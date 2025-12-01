@@ -6,14 +6,17 @@ import ChatWidget from "./ChatWidget";
 
 export default function PollHistory() {
     const [history, setHistory] = useState([]);
+    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
+        setLoading(true);
         socket.emit("teacher:getHistory");
 
         const handleHistory = ({ history }) => {
             // Keep chronological order (oldest first)
             setHistory(history);
+            setLoading(false);
         };
 
         socket.on("teacher:history", handleHistory);
@@ -32,7 +35,12 @@ export default function PollHistory() {
             </header>
 
             <div className="space-y-12">
-                {history.length > 0 ? (
+                {loading ? (
+                    <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                        <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
+                        <p className="text-gray-500 text-lg">Loading poll history...</p>
+                    </div>
+                ) : history.length > 0 ? (
                     history.map((poll, idx) => (
                         <div key={poll.id || idx}>
                             <h3 className="text-xl font-bold text-gray-900 mb-4">
