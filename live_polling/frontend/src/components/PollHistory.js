@@ -39,7 +39,7 @@ export default function PollHistory() {
                                 Question {idx + 1}
                             </h3>
                             <div className="space-y-6">
-                                <div className="bg-gray-600 text-white p-4 rounded-t-xl font-medium text-lg">
+                                <div className="bg-question-gradient text-[#F2F2F2] p-4 rounded-t-xl font-medium text-lg">
                                     {poll.question}
                                 </div>
                                 <div className="border border-t-0 border-gray-200 rounded-b-xl p-6 pt-2">

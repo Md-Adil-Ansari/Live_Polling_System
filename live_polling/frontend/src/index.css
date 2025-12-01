@@ -13,6 +13,10 @@
     .no-spinner {
         -moz-appearance: textfield;
     }
+
+    .bg-question-gradient {
+        background: linear-gradient(90deg, #373737 0%, #6E6E6E 100%);
+    }
 }
 
 @layer base {

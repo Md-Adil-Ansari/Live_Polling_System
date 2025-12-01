@@ -15,14 +15,14 @@ export default function PollResults({ poll }) {
           <div className="relative h-14 rounded-lg overflow-hidden bg-gray-50" key={idx}>
             {/* The Purple Bar */}
             <div
-              className="absolute inset-y-0 left-0 bg-indigo-600 transition-all duration-500 ease-out"
+              className="absolute inset-y-0 left-0 bg-brand transition-all duration-500 ease-out"
               style={{ width: `${pct}%` }}
             />
 
             {/* Text Layer: Black (Visible where not clipped by purple) */}
             <div className="absolute inset-0 flex items-center justify-between px-4 z-10">
               <div className="flex items-center gap-4">
-                <div className="w-8 h-8 rounded-full bg-white text-indigo-600 font-bold text-sm flex items-center justify-center shadow-sm">
+                <div className="w-8 h-8 rounded-full bg-white text-brand font-bold text-sm flex items-center justify-center shadow-sm">
                   {idx + 1}
                 </div>
                 <span className="font-medium text-gray-900 text-lg">{opt}</span>
@@ -36,7 +36,7 @@ export default function PollResults({ poll }) {
               style={{ clipPath: `inset(0 ${100 - pct}% 0 0)` }}
             >
               <div className="flex items-center gap-4">
-                <div className="w-8 h-8 rounded-full bg-white text-indigo-600 font-bold text-sm flex items-center justify-center shadow-sm">
+                <div className="w-8 h-8 rounded-full bg-white text-brand font-bold text-sm flex items-center justify-center shadow-sm">
                   {idx + 1}
                 </div>
                 <span className="font-medium text-white text-lg">{opt}</span>

@@ -76,7 +76,7 @@ export default function ChatWidget({ name, role }) {
     <div ref={chatWidgetRef}>
       <button
         type="button"
-        className="fixed right-8 bottom-8 w-14 h-14 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-2xl hover:bg-indigo-700 transition-all z-50 hover:scale-110 active:scale-95"
+        className="fixed right-8 bottom-8 w-14 h-14 rounded-full bg-brand text-white flex items-center justify-center shadow-2xl hover:bg-brand/90 transition-all z-50 hover:scale-110 active:scale-95"
         onClick={() => setIsOpen((o) => !o)}
       >
         <svg width="24" height="24" viewBox="0 0 39 39" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6">
@@ -108,7 +108,7 @@ export default function ChatWidget({ name, role }) {
             <button
               type="button"
               className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === "chat"
-                ? "text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/30"
+                ? "text-brand border-b-2 border-brand bg-brand/10"
                 : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
                 }`}
               onClick={() => setActiveTab("chat")}
@@ -118,7 +118,7 @@ export default function ChatWidget({ name, role }) {
             <button
               type="button"
               className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === "participants"
-                ? "text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/30"
+                ? "text-brand border-b-2 border-brand bg-brand/10"
                 : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
                 }`}
               onClick={() => setActiveTab("participants")}
@@ -138,12 +138,12 @@ export default function ChatWidget({ name, role }) {
                     key={msg.id}
                     className={`flex flex-col max-w-[85%] ${isOwn(msg) ? "items-end ml-auto" : "items-start"}`}
                   >
-                    <div className={`text-[10px] mb-1 px-1 ${isOwn(msg) ? "text-gray-500" : "text-indigo-600 font-medium"}`}>
+                    <div className="text-[10px] mb-1 px-1 text-brand font-bold">
                       {msg.sender}
                     </div>
                     <div className={`px-3 py-2 rounded-2xl text-sm shadow-sm ${isOwn(msg)
-                      ? "bg-indigo-600 text-white rounded-tr-none"
-                      : "bg-white text-gray-900 border border-gray-100 rounded-tl-none"
+                      ? "bg-brand text-white rounded-tr-none"
+                      : "bg-[#373737] text-white rounded-tl-none"
                       }`}>
                       {msg.text}
                     </div>
@@ -152,14 +152,14 @@ export default function ChatWidget({ name, role }) {
               </div>
               <form className="p-3 border-t border-gray-100 flex gap-2 bg-white" onSubmit={sendMessage}>
                 <input
-                  className="flex-1 bg-gray-100 border-0 rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  className="flex-1 bg-gray-100 border-0 rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-brand outline-none transition-all"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Type a message..."
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-full bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 rounded-full bg-brand text-white text-xs font-bold hover:bg-brand/90 transition-colors disabled:opacity-50"
                   disabled={!input.trim()}
                 >
                   Send

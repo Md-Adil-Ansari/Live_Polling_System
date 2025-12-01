@@ -14,7 +14,7 @@ export default function LandingPage() {
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-white p-6 font-sans">
             <div className="w-full max-w-4xl text-center">
-                <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-indigo-600 text-white text-xs font-bold tracking-wide mb-8 shadow-sm">
+                <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-brand text-white text-xs font-bold tracking-wide mb-8 shadow-sm">
                     ✦ Intervue Poll
                 </div>
 
@@ -30,12 +30,12 @@ export default function LandingPage() {
                     <button
                         type="button"
                         className={`w-full text-left p-8 rounded-2xl border-2 transition-all duration-200 group ${selectedRole === "student"
-                                ? "border-indigo-600 ring-1 ring-indigo-600 bg-indigo-50/30 shadow-lg shadow-indigo-100"
-                                : "border-gray-200 hover:border-indigo-200 hover:shadow-xl hover:-translate-y-1 bg-white"
+                            ? "border-brand ring-1 ring-brand bg-brand/10 shadow-lg shadow-brand/20"
+                            : "border-gray-200 hover:border-brand/30 hover:shadow-xl hover:-translate-y-1 bg-white"
                             }`}
                         onClick={() => setSelectedRole("student")}
                     >
-                        <h3 className={`text-xl font-bold mb-2 ${selectedRole === 'student' ? 'text-indigo-900' : 'text-gray-900 group-hover:text-indigo-700'}`}>I’m a Student</h3>
+                        <h3 className={`text-xl font-bold mb-2 ${selectedRole === 'student' ? 'text-brand' : 'text-gray-900 group-hover:text-brand'}`}>I’m a Student</h3>
                         <p className="text-gray-500 text-sm leading-relaxed">
                             Submit your answers and view live poll results in real-time.
                         </p>
@@ -44,12 +44,12 @@ export default function LandingPage() {
                     <button
                         type="button"
                         className={`w-full text-left p-8 rounded-2xl border-2 transition-all duration-200 group ${selectedRole === "teacher"
-                                ? "border-indigo-600 ring-1 ring-indigo-600 bg-indigo-50/30 shadow-lg shadow-indigo-100"
-                                : "border-gray-200 hover:border-indigo-200 hover:shadow-xl hover:-translate-y-1 bg-white"
+                            ? "border-brand ring-1 ring-brand bg-brand/10 shadow-lg shadow-brand/20"
+                            : "border-gray-200 hover:border-brand/30 hover:shadow-xl hover:-translate-y-1 bg-white"
                             }`}
                         onClick={() => setSelectedRole("teacher")}
                     >
-                        <h3 className={`text-xl font-bold mb-2 ${selectedRole === 'teacher' ? 'text-indigo-900' : 'text-gray-900 group-hover:text-indigo-700'}`}>I’m a Teacher</h3>
+                        <h3 className={`text-xl font-bold mb-2 ${selectedRole === 'teacher' ? 'text-brand' : 'text-gray-900 group-hover:text-brand'}`}>I’m a Teacher</h3>
                         <p className="text-gray-500 text-sm leading-relaxed">
                             Create questions, manage polls and see responses as they come in.
                         </p>
@@ -58,7 +58,7 @@ export default function LandingPage() {
 
                 <button
                     type="button"
-                    className="px-16 py-3.5 rounded-full bg-indigo-600 text-white font-semibold text-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transform hover:-translate-y-0.5 active:translate-y-0"
+                    className="px-16 py-3.5 rounded-full bg-brand text-white font-semibold text-lg hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-brand/30 hover:shadow-brand/50 transform hover:-translate-y-0.5 active:translate-y-0"
                     disabled={!selectedRole}
                     onClick={handleContinue}
                 >

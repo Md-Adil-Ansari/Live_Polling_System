@@ -33,7 +33,7 @@ mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/live_poll
 // ------- STATE -------
 let students = {};        // socketId -> { name, hasAnswered }
 let currentPoll = null;   // { id, question, options, expiresAt, isActive }
-let answers = {};         // socketId -> optionIndex
+let answers = {};         // studentName -> optionIndex (changed from socketId)
 let pollTimer = null;
 
 let questionCount = 0;      // increment on each new poll
@@ -79,8 +79,12 @@ async function restoreActivePoll() {
       if (!currentPoll) return;
       currentPoll.isActive = false;
 
-      // Update in MongoDB
-      await Poll.findByIdAndUpdate(activePoll._id, { isActive: false });
+      // Save results and voted students to MongoDB when timer expires
+      await Poll.findByIdAndUpdate(activePoll._id, {
+        isActive: false,
+        results: getResults(),
+        votedStudents: Object.keys(answers)
+      });
 
       console.log("Poll closed by timer (restored)");
       broadcastState();
@@ -165,12 +169,19 @@ io.on("connection", async (socket) => {
 
   // teacher creates poll
   socket.on("teacher:createPoll", async ({ question, options, duration }) => {
+    // Validate: prevent creating new poll if one is currently active
+    if (currentPoll && currentPoll.isActive && currentPoll.expiresAt > Date.now()) {
+      socket.emit("error", { message: "Cannot create new poll while previous poll is still active" });
+      console.log("❌ Rejected poll creation - active poll in progress");
+      return;
+    }
+
     // Archive current poll if exists
     if (currentPoll) {
       // Find and update the existing active poll in MongoDB
       await Poll.updateOne(
         { _id: currentPoll.dbId },
-        { $set: { results: getResults(), isActive: false } }
+        { $set: { results: getResults(), votedStudents: Object.keys(answers), isActive: false } }
       );
       console.log("📦 Archived poll to MongoDB");
     }
@@ -214,10 +225,16 @@ io.on("connection", async (socket) => {
       currentPoll.isActive = false;
       currentPoll.expiresAt = Date.now();
 
-      // Update in MongoDB
+      // Save results and voted students to MongoDB when timer expires
       await Poll.updateOne(
         { _id: currentPoll.dbId },
-        { $set: { isActive: false } }
+        {
+          $set: {
+            isActive: false,
+            results: getResults(),
+            votedStudents: Object.keys(answers)
+          }
+        }
       );
 
       console.log("Poll closed by timer");
@@ -239,8 +256,17 @@ io.on("connection", async (socket) => {
     if (!currentPoll || !currentPoll.isActive) return;
     if (!students[socket.id]) return;
 
-    console.log("Received answer", socket.id, "->", optionIndex);
-    answers[socket.id] = optionIndex;
+    const studentName = students[socket.id].name;
+
+    // Check if this student (by name) has already voted
+    if (answers[studentName] !== undefined) {
+      console.log("⚠️ Duplicate vote rejected for student:", studentName);
+      socket.emit("vote:rejected", { message: "You have already voted for this question" });
+      return;
+    }
+
+    console.log("Received answer", studentName, "->", optionIndex);
+    answers[studentName] = optionIndex;  // Store by student name, not socket ID
     students[socket.id].hasAnswered = true;
 
     broadcastState();
@@ -269,8 +295,14 @@ io.on("connection", async (socket) => {
       target.emit("student:kicked");
     }
 
+    // Get student name before deleting from students object
+    const kickedStudentName = students[studentId]?.name;
+
     delete students[studentId];
-    delete answers[studentId];
+    // Delete vote by student name if exists
+    if (kickedStudentName) {
+      delete answers[kickedStudentName];
+    }
 
     console.log("Student kicked:", studentId);
 

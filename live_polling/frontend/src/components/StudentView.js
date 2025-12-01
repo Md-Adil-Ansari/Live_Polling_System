@@ -54,9 +54,15 @@ export default function StudentView() {
       localStorage.removeItem('studentName');
     };
 
+    const handleVoteRejected = ({ message }) => {
+      alert(message || "You have already voted for this question from another window/tab");
+      setHasSubmitted(true);
+    };
+
     socket.on("poll:update", handleUpdate);
     socket.on("poll:closed", handleClosed);
     socket.on("student:kicked", handleKicked);
+    socket.on("vote:rejected", handleVoteRejected);
 
     // Request latest state in case we missed the initial event
     socket.emit("poll:getState");
@@ -65,6 +71,7 @@ export default function StudentView() {
       socket.off("poll:update", handleUpdate);
       socket.off("poll:closed", handleClosed);
       socket.off("student:kicked", handleKicked);
+      socket.off("vote:rejected", handleVoteRejected);
     };
   }, []);
 
@@ -89,7 +96,7 @@ export default function StudentView() {
   if (kicked) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-center p-6">
-        <div className="inline-flex items-center justify-center px-5 py-2 rounded-full bg-indigo-600 text-white text-sm font-bold tracking-wide mb-10 shadow-sm">
+        <div className="inline-flex items-center justify-center px-5 py-2 rounded-full bg-brand text-white text-sm font-bold tracking-wide mb-10 shadow-sm">
           ✦ Intervue Poll
         </div>
         <h2 className="text-5xl md:text-6xl text-gray-900 mb-6">You've been Kicked out !</h2>
@@ -109,11 +116,11 @@ export default function StudentView() {
           {name}
         </div>
 
-        <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-indigo-600 text-white text-xs font-bold tracking-wide mb-12 shadow-sm">
+        <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-brand text-white text-xs font-bold tracking-wide mb-12 shadow-sm">
           ✦ Intervue Poll
         </div>
 
-        <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-8"></div>
+        <div className="w-12 h-12 border-4 border-brand/30 border-t-brand rounded-full animate-spin mb-8"></div>
 
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Wait for the teacher to ask questions..</h2>
         <ChatWidget name={name} role="student" />
@@ -135,9 +142,9 @@ export default function StudentView() {
       </div>
 
       {/* Card Container */}
-      <div className="border border-indigo-100 rounded-xl overflow-hidden shadow-sm">
+      <div className="border border-brand/20 rounded-xl overflow-hidden shadow-sm">
         {/* Question Header */}
-        <div className="bg-[#4b4b4b] text-white p-4 md:p-6">
+        <div className="bg-question-gradient text-[#F2F2F2] p-4 md:p-6">
           <h3 className="text-xl md:text-2xl font-semibold leading-snug">
             {poll.question}
           </h3>
@@ -152,13 +159,13 @@ export default function StudentView() {
                   <li key={idx}>
                     <label
                       className={`block w-full text-left p-4 rounded-lg border transition-all cursor-pointer flex items-center gap-4 group ${selected === idx
-                        ? "border-indigo-600 ring-1 ring-indigo-600 bg-white"
+                        ? "border-brand ring-1 ring-brand bg-white"
                         : "border-gray-200 bg-gray-50 hover:bg-gray-100"
                         }`}
                     >
                       <div
                         className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm font-bold transition-colors ${selected === idx
-                          ? "bg-indigo-600 text-white"
+                          ? "bg-brand text-white"
                           : "bg-gray-400 text-white group-hover:bg-gray-500"
                           }`}
                       >
@@ -181,7 +188,7 @@ export default function StudentView() {
               </ul>
               <div className="mt-8 flex justify-end">
                 <button
-                  className="px-10 py-3 rounded-full bg-indigo-600 text-white font-bold text-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transform hover:-translate-y-0.5 active:translate-y-0"
+                  className="px-10 py-3 rounded-full bg-brand text-white font-bold text-lg hover:bg-brand/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-brand/30 hover:shadow-brand/50 transform hover:-translate-y-0.5 active:translate-y-0"
                   disabled={hasSubmitted || selected == null}
                   onClick={submitAnswer}
                 >

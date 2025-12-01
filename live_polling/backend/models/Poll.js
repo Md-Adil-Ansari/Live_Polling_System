@@ -17,6 +17,10 @@ const pollSchema = new mongoose.Schema({
         type: [Number],
         default: [],
     },
+    votedStudents: {
+        type: [String],
+        default: [],
+    },
     expiresAt: {
         type: Number,
         required: true,
